@@ -21,22 +21,19 @@
 
 declare(strict_types=1);
 
-namespace pocketmine\nbt\tag;
+namespace pocketmine\form\element;
 
-use pocketmine\nbt\NBT;
-use pocketmine\nbt\NBTStream;
+class StepSlider extends Dropdown{
 
-class EndTag extends Tag{
-
-	public function getType() : int{
-		return NBT::TAG_End;
+	public function getType() : string{
+		return "step_slider";
 	}
 
-	public function read(NBTStream $nbt) : void{
 
-	}
-
-	public function write(NBTStream $nbt) : void{
-
+	public function serializeElementData() : array{
+		return [
+			"steps" => $this->options,
+			"default" => $this->defaultOptionIndex
+		];
 	}
 }

@@ -32,7 +32,6 @@ use pocketmine\block\BlockToolType;
 use pocketmine\entity\Entity;
 use pocketmine\item\enchantment\Enchantment;
 use pocketmine\item\enchantment\EnchantmentInstance;
-use pocketmine\level\Level;
 use pocketmine\math\Vector3;
 use pocketmine\nbt\LittleEndianNBTStream;
 use pocketmine\nbt\NBT;
@@ -42,6 +41,9 @@ use pocketmine\nbt\tag\ListTag;
 use pocketmine\nbt\tag\NamedTag;
 use pocketmine\nbt\tag\ShortTag;
 use pocketmine\nbt\tag\StringTag;
+use pocketmine\network\mcpe\protocol\BatchPacket;
+use pocketmine\network\mcpe\protocol\InventoryContentPacket;
+use pocketmine\network\mcpe\protocol\types\ContainerIds;
 use pocketmine\Player;
 use pocketmine\Server;
 use pocketmine\utils\Binary;
@@ -120,6 +122,8 @@ class Item implements ItemIds, \JsonSerializable{
 
 	/** @var Item[] */
 	private static $creative = [];
+	/** @var BatchPacket|null */
+	private static $creativeCache;
 
 	public static function initCreativeItems(){
 		self::clearCreativeItems();
@@ -133,10 +137,13 @@ class Item implements ItemIds, \JsonSerializable{
 			}
 			self::addCreativeItem($item);
 		}
+
+		self::buildCreativeInventoryCache();
 	}
 
 	public static function clearCreativeItems(){
 		Item::$creative = [];
+		self::$creativeCache = null;
 	}
 
 	public static function getCreativeItems() : array{
@@ -145,12 +152,14 @@ class Item implements ItemIds, \JsonSerializable{
 
 	public static function addCreativeItem(Item $item){
 		Item::$creative[] = clone $item;
+		self::$creativeCache = null;
 	}
 
 	public static function removeCreativeItem(Item $item){
 		$index = self::getCreativeItemIndex($item);
 		if($index !== -1){
 			unset(Item::$creative[$index]);
+			self::$creativeCache = null;
 		}
 	}
 
@@ -175,6 +184,30 @@ class Item implements ItemIds, \JsonSerializable{
 		}
 
 		return -1;
+	}
+
+	public static function getCreativeInventoryPacket() : BatchPacket{
+		if(self::$creativeCache === null){
+			self::buildCreativeInventoryCache();
+		}
+
+		return self::$creativeCache;
+	}
+
+	private static function buildCreativeInventoryCache() : void{
+		$pk = new InventoryContentPacket();
+		$pk->windowId = ContainerIds::CREATIVE;
+
+		foreach(self::$creative as $i => $item){
+			$pk->items[$i] = clone $item;
+		}
+
+		$batch = new BatchPacket();
+		$batch->setCompressionLevel(Server::getInstance()->networkCompressionLevel);
+		$batch->addPacket($pk);
+		$batch->encode();
+
+		self::$creativeCache = $batch;
 	}
 
 	/** @var Block|null */
@@ -410,6 +443,28 @@ class Item implements ItemIds, \JsonSerializable{
 		}
 
 		return $enchantments;
+	}
+
+	/**
+	 * Returns the level of the enchantment on this item with the specified ID, or 0 if the item does not have the
+	 * enchantment.
+	 *
+	 * @param int $enchantmentId
+	 *
+	 * @return int
+	 */
+	public function getEnchantmentLevel(int $enchantmentId) : int{
+		$ench = $this->getNamedTag()->getListTag(self::TAG_ENCH);
+		if($ench !== null){
+			/** @var CompoundTag $entry */
+			foreach($ench as $entry){
+				if($entry->getShort("id") === $enchantmentId){
+					return $entry->getShort("lvl");
+				}
+			}
+		}
+
+		return 0;
 	}
 
 	/**
@@ -739,15 +794,6 @@ class Item implements ItemIds, \JsonSerializable{
 		return 0;
 	}
 
-	/**
-	 * Returns the maximum amount of damage this item can take before it breaks.
-	 *
-	 * @return int|bool
-	 */
-	public function getMaxDurability(){
-		return false;
-	}
-
 	public function isPickaxe(){
 		return false;
 	}
@@ -779,7 +825,6 @@ class Item implements ItemIds, \JsonSerializable{
 	/**
 	 * Called when a player uses this item on a block.
 	 *
-	 * @param Level   $level
 	 * @param Player  $player
 	 * @param Block   $blockReplace
 	 * @param Block   $blockClicked
@@ -788,7 +833,7 @@ class Item implements ItemIds, \JsonSerializable{
 	 *
 	 * @return bool
 	 */
-	public function onActivate(Level $level, Player $player, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector) : bool{
+	public function onActivate(Player $player, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector) : bool{
 		return false;
 	}
 
