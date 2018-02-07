@@ -29,6 +29,9 @@ namespace pocketmine\event\block;
 use pocketmine\block\Block;
 use pocketmine\event\Event;
 
+/**
+ * @noHandle
+ */
 abstract class BlockEvent extends Event{
 	/** @var Block */
 	protected $block;
