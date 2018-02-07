@@ -2376,9 +2376,10 @@ class Level implements ChunkManager, Metadatable{
 
 	public function getLoadedChunk(int $chunkX, int $chunkZ) : Chunk{
 		if(!isset($this->chunks[$chunkHash = Level::chunkHash($chunkX, $chunkZ)])){
-			throw new \RuntimeException("Chunk $chunkX $chunkZ is not loaded");
+			$this->server->getLogger()->warning("Chunk X:$chunkX Z:$chunkZ is not loaded");
+			$this->loadChunk($chunkX, $chunkZ);
 		}
-
+		while(!isset($this->chunks[$chunkHash]);
 		return $this->chunks[$chunkHash];
 	}
 
