@@ -24,17 +24,12 @@ declare(strict_types=1);
 namespace pocketmine\inventory;
 
 use pocketmine\entity\Human;
-use pocketmine\event\entity\EntityArmorChangeEvent;
 use pocketmine\event\player\PlayerItemHeldEvent;
 use pocketmine\item\Item;
-use pocketmine\item\ItemFactory;
 use pocketmine\network\mcpe\protocol\InventoryContentPacket;
-use pocketmine\network\mcpe\protocol\InventorySlotPacket;
-use pocketmine\network\mcpe\protocol\MobArmorEquipmentPacket;
 use pocketmine\network\mcpe\protocol\MobEquipmentPacket;
 use pocketmine\network\mcpe\protocol\types\ContainerIds;
 use pocketmine\Player;
-use pocketmine\Server;
 
 class PlayerInventory extends EntityInventory{
 
@@ -56,16 +51,7 @@ class PlayerInventory extends EntityInventory{
 	}
 
 	public function getDefaultSize() : int{
-		return 40; //36 inventory, 4 armor
-	}
-
-	public function getSize() : int{
-		return parent::getSize() - 4; //Remove armor slots
-	}
-
-	public function setSize(int $size){
-		parent::setSize($size + 4);
-		$this->sendContents($this->getViewers());
+		return 36;
 	}
 
 	/**
@@ -201,23 +187,6 @@ class PlayerInventory extends EntityInventory{
 			if(in_array($this->getHolder(), $target, true)){
 				$this->sendSlot($this->getHeldItemIndex(), $this->getHolder());
 			}
-		}
-	}
-
-	public function onSlotChange(int $index, Item $before, bool $send) : void{
-		$holder = $this->getHolder();
-		if($holder instanceof Player and !$holder->spawned){
-			return;
-		}
-
-		if($index >= $this->getSize()){
-			if($send){
-				$this->sendArmorSlot($index, $this->getViewers());
-				$this->sendArmorSlot($index, $this->getHolder()->getViewers());
-			}
-		}else{
-			//Do not send armor by accident here.
-			parent::onSlotChange($index, $before, $send);
 		}
 	}
 

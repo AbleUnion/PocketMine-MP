@@ -21,53 +21,58 @@
 
 declare(strict_types=1);
 
-namespace pocketmine\nbt\tag;
+namespace pocketmine\form\element;
 
-use pocketmine\nbt\NBT;
-use pocketmine\nbt\NBTStream;
+/**
+ * Represents a UI on/off switch. The switch may have a default value.
+ */
+class Toggle extends CustomFormElement{
+	/** @var bool */
+	private $default;
+	/** @var bool */
+	private $value;
 
-#include <rules/NBT.h>
+	public function __construct(string $text, bool $defaultValue = false){
+		parent::__construct($text);
+		$this->default = $defaultValue;
+	}
 
-class StringTag extends NamedTag{
+	public function getType() : string{
+		return "toggle";
+	}
 
 	/**
-	 * StringTag constructor.
-	 *
-	 * @param string $name
-	 * @param string $value
+	 * @return bool
 	 */
-	public function __construct(string $name = "", string $value = ""){
-		parent::__construct($name, $value);
-	}
-
-	public function getType() : int{
-		return NBT::TAG_String;
-	}
-
-	public function read(NBTStream $nbt) : void{
-		$this->value = $nbt->getString();
-	}
-
-	public function write(NBTStream $nbt) : void{
-		$nbt->putString($this->value);
+	public function getDefaultValue() : bool{
+		return $this->default;
 	}
 
 	/**
-	 * @return string
+	 * @return bool
 	 */
-	public function &getValue() : string{
-		return parent::getValue();
+	public function getValue() : bool{
+		return $this->value;
 	}
 
 	/**
-	 * @param string $value
+	 * @param bool $value
 	 *
 	 * @throws \TypeError
 	 */
 	public function setValue($value) : void{
-		if(!is_string($value)){
-			throw new \TypeError("StringTag value must be of type string, " . gettype($value) . " given");
+		if(!is_bool($value)){
+			throw new \TypeError("Expected bool, got " . gettype($value));
 		}
-		parent::setValue($value);
+
+		$this->value = $value;
 	}
+
+
+	public function serializeElementData() : array{
+		return [
+			"default" => $this->default
+		];
+	}
+
 }
