@@ -1664,14 +1664,13 @@ abstract class Entity extends Location implements Metadatable, EntityIds{
 	 */
 	public function getBlocksAround() : array{
 		if($this->blocksAround === null){
-			$inset = 0.001; //Offset against floating-point errors
-
-			$minX = Math::floorFloat($this->boundingBox->minX + $inset);
-			$minY = Math::floorFloat($this->boundingBox->minY + $inset);
-			$minZ = Math::floorFloat($this->boundingBox->minZ + $inset);
-			$maxX = Math::floorFloat($this->boundingBox->maxX - $inset);
-			$maxY = Math::floorFloat($this->boundingBox->maxY - $inset);
-			$maxZ = Math::floorFloat($this->boundingBox->maxZ - $inset);
+			$bb = clone $this->boundingBox;
+			$minX = Math::floorFloat($bb->minX);
+			$minY = Math::floorFloat($bb->minY);
+			$minZ = Math::floorFloat($bb->minZ);
+			$maxX = Math::ceilFloat($bb->maxX);
+			$maxY = Math::ceilFloat($bb->maxY);
+			$maxZ = Math::ceilFloat($bb->maxZ);
 
 			$this->blocksAround = [];
 
@@ -1679,7 +1678,7 @@ abstract class Entity extends Location implements Metadatable, EntityIds{
 				for($x = $minX; $x <= $maxX; ++$x){
 					for($y = $minY; $y <= $maxY; ++$y){
 						$block = $this->level->getBlockAt($x, $y, $z);
-						if($block->hasEntityCollision()){
+						if($block->hasEntityCollision() and ($bb2 = $block->getBoundingBox()) !== null and $bb2->intersectsWith($bb)){
 							$this->blocksAround[] = $block;
 						}
 					}

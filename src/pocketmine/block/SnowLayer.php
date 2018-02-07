@@ -96,8 +96,5 @@ class SnowLayer extends Flowable{
 			ItemFactory::get(Item::SNOWBALL) //TODO: check layer count
 		];
 	}
-
-	public function isAffectedBySilkTouch() : bool{
-		return false;
-	}
+	//TODO: bounding & collision boxes
 }
