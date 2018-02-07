@@ -21,35 +21,28 @@
 
 declare(strict_types=1);
 
-namespace pocketmine\nbt\tag;
+namespace pocketmine\form\element;
 
+/**
+ * Element which displays some text on a form.
+ */
+class Label extends CustomFormElement{
 
-abstract class NamedTag extends Tag{
-	/** @var string */
-	protected $__name;
-
-	/**
-	 * @param string $name
-	 * @param mixed  $value
-	 */
-	public function __construct(string $name = "", $value = null){
-		$this->__name = ($name === null or $name === false) ? "" : $name;
-		if($value !== null){
-			$this->setValue($value);
-		}
+	public function getType() : string{
+		return "label";
 	}
 
-	/**
-	 * @return string
-	 */
-	public function getName() : string{
-		return $this->__name;
+	public function getValue(){
+		return null;
 	}
 
-	/**
-	 * @param string $name
-	 */
-	public function setName(string $name) : void{
-		$this->__name = $name;
+	public function setValue($value) : void{
+		assert($value === null);
 	}
+
+
+	public function serializeElementData() : array{
+		return [];
+	}
+
 }

@@ -21,32 +21,49 @@
 
 declare(strict_types=1);
 
+namespace pocketmine\form;
+
 /**
- * All the NBT Tags
+ * Represents an option on a MenuForm. The option is shown as a button and may optionally have an image next to it.
  */
-namespace pocketmine\nbt\tag;
+class MenuOption implements \JsonSerializable{
 
-use pocketmine\nbt\NBTStream;
+	/**
+	 * @var string
+	 */
+	private $text;
+	/**
+	 * @var FormIcon|null
+	 */
+	private $image;
 
-abstract class Tag extends \stdClass{
-
-	protected $value;
-
-	public function &getValue(){
-		return $this->value;
+	public function __construct(string $text, ?FormIcon $image = null){
+		$this->text = $text;
+		$this->image = $image;
 	}
 
-	abstract public function getType() : int;
-
-	public function setValue($value) : void{
-		$this->value = $value;
+	public function getText() : string{
+		return $this->text;
 	}
 
-	abstract public function write(NBTStream $nbt) : void;
-
-	abstract public function read(NBTStream $nbt) : void;
-
-	public function __toString(){
-		return (string) $this->value;
+	public function hasImage() : bool{
+		return $this->image !== null;
 	}
+
+	public function getImage() : ?FormIcon{
+		return $this->image;
+	}
+
+	public function jsonSerialize(){
+		$json = [
+			"text" => $this->text
+		];
+
+		if($this->hasImage()){
+			$json["image"] = $this->image;
+		}
+
+		return $json;
+	}
+
 }

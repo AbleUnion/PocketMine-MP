@@ -96,6 +96,5 @@ class SnowLayer extends Flowable{
 			ItemFactory::get(Item::SNOWBALL) //TODO: check layer count
 		];
 	}
-
 	//TODO: bounding & collision boxes
 }

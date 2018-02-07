@@ -304,7 +304,7 @@ class Server{
 	 * @return string
 	 */
 	public function getVersion() : string{
-		return ProtocolInfo::MINECRAFT_VERSION;
+	    return implode(",",ProtocolInfo::MINECRAFT_VERSION);
 	}
 
 	/**
@@ -1434,6 +1434,9 @@ class Server{
 	 * @param string          $pluginPath
 	 */
 	public function __construct(\ClassLoader $autoloader, \ThreadedLogger $logger, string $dataPath, string $pluginPath){
+		if(self::$instance !== null){
+			throw new \InvalidStateException("Only one server instance can exist at once");
+		}
 		self::$instance = $this;
 		self::$sleeper = new \Threaded;
 		$this->autoloader = $autoloader;
@@ -2115,7 +2118,7 @@ class Server{
 	/**
 	 * Starts the PocketMine-MP server and starts processing ticks and packets
 	 */
-	public function start(){
+	private function start(){
 		if($this->getConfigBool("enable-query", true) === true){
 			$this->queryHandler = new QueryHandler();
 		}

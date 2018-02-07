@@ -32,7 +32,6 @@ use pocketmine\block\BlockToolType;
 use pocketmine\entity\Entity;
 use pocketmine\item\enchantment\Enchantment;
 use pocketmine\item\enchantment\EnchantmentInstance;
-use pocketmine\level\Level;
 use pocketmine\math\Vector3;
 use pocketmine\nbt\LittleEndianNBTStream;
 use pocketmine\nbt\NBT;
@@ -56,7 +55,7 @@ class Item implements ItemIds, \JsonSerializable{
 	public const TAG_DISPLAY_LORE = "Lore";
 
 
-	/** @var NBT */
+	/** @var LittleEndianNBTStream */
 	private static $cachedParser = null;
 
 	private static function parseCompoundTag(string $tag) : CompoundTag{
@@ -413,6 +412,28 @@ class Item implements ItemIds, \JsonSerializable{
 	}
 
 	/**
+	 * Returns the level of the enchantment on this item with the specified ID, or 0 if the item does not have the
+	 * enchantment.
+	 *
+	 * @param int $enchantmentId
+	 *
+	 * @return int
+	 */
+	public function getEnchantmentLevel(int $enchantmentId) : int{
+		$ench = $this->getNamedTag()->getListTag(self::TAG_ENCH);
+		if($ench !== null){
+			/** @var CompoundTag $entry */
+			foreach($ench as $entry){
+				if($entry->getShort("id") === $enchantmentId){
+					return $entry->getShort("lvl");
+				}
+			}
+		}
+
+		return 0;
+	}
+
+	/**
 	 * @return bool
 	 */
 	public function hasCustomName() : bool{
@@ -739,15 +760,6 @@ class Item implements ItemIds, \JsonSerializable{
 		return 0;
 	}
 
-	/**
-	 * Returns the maximum amount of damage this item can take before it breaks.
-	 *
-	 * @return int|bool
-	 */
-	public function getMaxDurability(){
-		return false;
-	}
-
 	public function isPickaxe(){
 		return false;
 	}
@@ -779,7 +791,6 @@ class Item implements ItemIds, \JsonSerializable{
 	/**
 	 * Called when a player uses this item on a block.
 	 *
-	 * @param Level   $level
 	 * @param Player  $player
 	 * @param Block   $blockReplace
 	 * @param Block   $blockClicked
@@ -788,7 +799,7 @@ class Item implements ItemIds, \JsonSerializable{
 	 *
 	 * @return bool
 	 */
-	public function onActivate(Level $level, Player $player, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector) : bool{
+	public function onActivate(Player $player, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector) : bool{
 		return false;
 	}
 
