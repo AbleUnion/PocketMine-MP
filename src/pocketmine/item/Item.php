@@ -41,6 +41,9 @@ use pocketmine\nbt\tag\ListTag;
 use pocketmine\nbt\tag\NamedTag;
 use pocketmine\nbt\tag\ShortTag;
 use pocketmine\nbt\tag\StringTag;
+use pocketmine\network\mcpe\protocol\BatchPacket;
+use pocketmine\network\mcpe\protocol\InventoryContentPacket;
+use pocketmine\network\mcpe\protocol\types\ContainerIds;
 use pocketmine\Player;
 use pocketmine\Server;
 use pocketmine\utils\Binary;
@@ -119,6 +122,8 @@ class Item implements ItemIds, \JsonSerializable{
 
 	/** @var Item[] */
 	private static $creative = [];
+	/** @var BatchPacket|null */
+	private static $creativeCache;
 
 	public static function initCreativeItems(){
 		self::clearCreativeItems();
@@ -132,10 +137,13 @@ class Item implements ItemIds, \JsonSerializable{
 			}
 			self::addCreativeItem($item);
 		}
+
+		self::buildCreativeInventoryCache();
 	}
 
 	public static function clearCreativeItems(){
 		Item::$creative = [];
+		self::$creativeCache = null;
 	}
 
 	public static function getCreativeItems() : array{
@@ -144,12 +152,14 @@ class Item implements ItemIds, \JsonSerializable{
 
 	public static function addCreativeItem(Item $item){
 		Item::$creative[] = clone $item;
+		self::$creativeCache = null;
 	}
 
 	public static function removeCreativeItem(Item $item){
 		$index = self::getCreativeItemIndex($item);
 		if($index !== -1){
 			unset(Item::$creative[$index]);
+			self::$creativeCache = null;
 		}
 	}
 
@@ -174,6 +184,30 @@ class Item implements ItemIds, \JsonSerializable{
 		}
 
 		return -1;
+	}
+
+	public static function getCreativeInventoryPacket() : BatchPacket{
+		if(self::$creativeCache === null){
+			self::buildCreativeInventoryCache();
+		}
+
+		return self::$creativeCache;
+	}
+
+	private static function buildCreativeInventoryCache() : void{
+		$pk = new InventoryContentPacket();
+		$pk->windowId = ContainerIds::CREATIVE;
+
+		foreach(self::$creative as $i => $item){
+			$pk->items[$i] = clone $item;
+		}
+
+		$batch = new BatchPacket();
+		$batch->setCompressionLevel(Server::getInstance()->networkCompressionLevel);
+		$batch->addPacket($pk);
+		$batch->encode();
+
+		self::$creativeCache = $batch;
 	}
 
 	/** @var Block|null */
