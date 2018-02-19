@@ -21,18 +21,8 @@
 
 declare(strict_types=1);
 
-namespace pocketmine\item;
+namespace pocketmine\network\mcpe;
 
-use pocketmine\block\Block;
-use pocketmine\block\BlockFactory;
+class VerifyLoginException extends \RuntimeException{
 
-class Cake extends Item{
-	public function __construct(int $meta = 0){
-		$this->block = BlockFactory::get(Block::CAKE_BLOCK);
-		parent::__construct(self::CAKE, $meta, "Cake");
-	}
-
-	public function getMaxStackSize() : int{
-		return 1;
-	}
 }

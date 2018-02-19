@@ -21,20 +21,38 @@
 
 declare(strict_types=1);
 
-namespace pocketmine\inventory;
+namespace pocketmine\lang;
 
-use pocketmine\level\Position;
+class TextContainer{
 
-class FakeBlockMenu extends Position implements InventoryHolder{
+	/** @var string $text */
+	protected $text;
 
-	private $inventory;
-
-	public function __construct(Inventory $inventory, Position $pos){
-		$this->inventory = $inventory;
-		parent::__construct($pos->x, $pos->y, $pos->z, $pos->level);
+	/**
+	 * @param string $text
+	 */
+	public function __construct(string $text){
+		$this->text = $text;
 	}
 
-	public function getInventory(){
-		return $this->inventory;
+	/**
+	 * @param string $text
+	 */
+	public function setText(string $text){
+		$this->text = $text;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getText() : string{
+		return $this->text;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function __toString() : string{
+		return $this->getText();
 	}
 }
