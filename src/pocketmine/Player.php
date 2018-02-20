@@ -243,7 +243,6 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	protected $startAction = -1;
 	/** @var Vector3|null */
 	protected $sleeping = null;
-	protected $clientID = null;
 
 	private $loaderId = 0;
 
@@ -678,18 +677,16 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 
 	/**
 	 * @param SourceInterface $interface
-	 * @param null            $clientID
 	 * @param string          $ip
 	 * @param int             $port
 	 */
-	public function __construct(SourceInterface $interface, $clientID, string $ip, int $port){
+	public function __construct(SourceInterface $interface, string $ip, int $port){
 		$this->interface = $interface;
 		$this->perm = new PermissibleBase($this);
 		$this->namedtag = new CompoundTag();
 		$this->server = Server::getInstance();
 		$this->ip = $ip;
 		$this->port = $port;
-		$this->clientID = $clientID;
 		$this->loaderId = Level::generateChunkLoaderId($this);
 		$this->chunksPerTick = (int) $this->server->getProperty("chunk-sending.per-tick", 4);
 		$this->spawnThreshold = (int) (($this->server->getProperty("chunk-sending.spawn-radius", 4) ** 2) * M_PI);
@@ -1017,8 +1014,8 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$newOrder = [];
 		$unloadChunks = $this->usedChunks;
 
-		$centerX = $this->x >> 4;
-		$centerZ = $this->z >> 4;
+		$centerX = $this->getFloorX() >> 4;
+		$centerZ = $this->getFloorZ() >> 4;
 
 		for($x = 0; $x < $radius; ++$x){
 			for($z = 0; $z <= $x; ++$z){
@@ -1127,9 +1124,9 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		}
 		$this->spawnPosition = new WeakPosition($pos->x, $pos->y, $pos->z, $level);
 		$pk = new SetSpawnPositionPacket();
-		$pk->x = (int) $this->spawnPosition->x;
-		$pk->y = (int) $this->spawnPosition->y;
-		$pk->z = (int) $this->spawnPosition->z;
+		$pk->x = $this->spawnPosition->getFloorX();
+		$pk->y = $this->spawnPosition->getFloorY();
+		$pk->z = $this->spawnPosition->getFloorZ();
 		$pk->spawnType = SetSpawnPositionPacket::TYPE_PLAYER_SPAWN;
 		$pk->spawnForced = false;
 		$this->dataPacket($pk);
@@ -1476,7 +1473,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 			$revert = true;
 		}else{
 			if($this->chunk === null or !$this->chunk->isGenerated()){
-				$chunk = $this->level->getChunk($newPos->x >> 4, $newPos->z >> 4, false);
+				$chunk = $this->level->getChunk($newPos->getFloorX() >> 4, $newPos->getFloorZ() >> 4, false);
 				if($chunk === null or !$chunk->isGenerated()){
 					$revert = true;
 					$this->nextChunkOrderRun = 0;
@@ -1774,7 +1771,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 
 		$this->protocol = $packet->protocol;
 
-		if($packet->protocol !== ProtocolInfo::CURRENT_PROTOCOL){
+		if(!in_array($packet->protocol, ProtocolInfo::ACCEPTED_PROTOCOLS)){
 			if($packet->protocol < ProtocolInfo::CURRENT_PROTOCOL){
 				$this->sendPlayStatus(PlayStatusPacket::LOGIN_FAILED_CLIENT, true);
 			}else{
@@ -1817,7 +1814,6 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 			$packet->clientData["SkinGeometryName"] ?? "",
 			base64_decode($packet->clientData["SkinGeometry"] ?? "")
 		);
-		$skin->debloatGeometryData();
 
 		if(!$skin->isValid()){
 			$this->close("", "disconnectionScreen.invalidSkin");
@@ -2418,6 +2414,10 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 							$ev->setCancelled();
 						}
 
+						if(!$this->isSprinting() and !$this->isFlying() and $this->fallDistance > 0 and !$this->hasEffect(Effect::BLINDNESS) and !$this->isInsideOfWater()){
+							$ev->setDamage($ev->getFinalDamage() / 2, EntityDamageEvent::MODIFIER_CRITICAL);
+						}
+
 						$target->attack($ev);
 
 						if($ev->isCancelled()){
@@ -2425,6 +2425,16 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 								$this->inventory->sendContents($this);
 							}
 							return true;
+						}
+
+						if($ev->getDamage(EntityDamageEvent::MODIFIER_CRITICAL) > 0){
+							$pk = new AnimatePacket();
+							$pk->action = AnimatePacket::ACTION_CRITICAL_HIT;
+							$pk->entityRuntimeId = $target->getId();
+							$this->server->broadcastPacket($target->getViewers(), $pk);
+							if($target instanceof Player){
+								$target->dataPacket($pk);
+							}
 						}
 
 						if($this->isSurvival()){
@@ -2793,9 +2803,12 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$t = $this->level->getTile($pos);
 		if($t instanceof Spawnable){
 			$nbt = new NetworkLittleEndianNBTStream();
-			$nbt->read($packet->namedtag);
-			$nbt = $nbt->getData();
-			if(!$t->updateCompoundTag($nbt, $this)){
+			$compound = $nbt->read($packet->namedtag);
+
+			if(!($compound instanceof CompoundTag)){
+				throw new \InvalidArgumentException("Expected " . CompoundTag::class . " in block entity NBT, got " . (is_object($compound) ? get_class($compound) : gettype($compound)));
+			}
+			if(!$t->updateCompoundTag($compound, $this)){
 				$t->spawnTo($this);
 			}
 		}
@@ -2826,12 +2839,11 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$tile = $this->level->getTileAt($packet->x, $packet->y, $packet->z);
 		if($tile instanceof ItemFrame){
 			$ev = new PlayerInteractEvent($this, $this->inventory->getItemInHand(), $tile->getBlock(), null, 5 - $tile->getBlock()->getDamage(), PlayerInteractEvent::LEFT_CLICK_BLOCK);
-			$this->server->getPluginManager()->callEvent($ev);
-
-			if($this->isSpectator()){
+			if($this->isSpectator() or $this->level->checkSpawnProtection($this, $tile)){
 				$ev->setCancelled();
 			}
 
+			$this->server->getPluginManager()->callEvent($ev);
 			if($ev->isCancelled()){
 				$tile->spawnTo($this);
 				return true;
@@ -3352,9 +3364,9 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 
 		if($this->hasValidSpawnPosition()){
 			$this->namedtag->setString("SpawnLevel", $this->spawnPosition->getLevel()->getFolderName());
-			$this->namedtag->setInt("SpawnX", (int) $this->spawnPosition->x);
-			$this->namedtag->setInt("SpawnY", (int) $this->spawnPosition->y);
-			$this->namedtag->setInt("SpawnZ", (int) $this->spawnPosition->z);
+			$this->namedtag->setInt("SpawnX", $this->spawnPosition->getFloorX());
+			$this->namedtag->setInt("SpawnY", $this->spawnPosition->getFloorY());
+			$this->namedtag->setInt("SpawnZ", $this->spawnPosition->getFloorZ());
 
 			if(!$this->isAlive()){
 				//hack for respawn after quit

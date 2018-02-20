@@ -2,7 +2,7 @@
 
 __A highly customisable, open source server software for Minecraft: Pocket Edition written in PHP__
 
-[![Build Status](https://travis-ci.org/pmmp/PocketMine-MP.svg?branch=master)](https://travis-ci.org/pmmp/PocketMine-MP)
+[![Build Status](https://travis-ci.org/AbleUnion/PocketMine-MP.svg?branch=master)](https://travis-ci.org/AbleUnion/PocketMine-MP)
 
 ### Setup, help & support, FAQs
 Head over to the [documentation site](http://pmmp.readthedocs.org/).
