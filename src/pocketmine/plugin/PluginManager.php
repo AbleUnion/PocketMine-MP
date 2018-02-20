@@ -230,7 +230,7 @@ class PluginManager{
 									$name,
 									$this->server->getLanguage()->translateString("%pocketmine.plugin.incompatibleAPI", [implode(", ", $description->getCompatibleApis())])
 								]));
-								continue;
+								$this->server->getLogger()->info("but, it will be loaded");
 							}
 
 							if(count($pluginMcpeProtocols = $description->getCompatibleMcpeProtocols()) > 0){
