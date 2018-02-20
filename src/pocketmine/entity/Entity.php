@@ -33,6 +33,7 @@ use pocketmine\entity\object\ExperienceOrb;
 use pocketmine\entity\projectile\Arrow;
 use pocketmine\entity\projectile\Egg;
 use pocketmine\entity\projectile\Snowball;
+use pocketmine\event\entity\EntityBounceOnBlockEvent;
 use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\event\entity\EntityDespawnEvent;
 use pocketmine\event\entity\EntityLevelChangeEvent;
@@ -1423,6 +1424,30 @@ abstract class Entity extends Location implements Metadatable, EntityIds{
 	 */
 	public function fall(float $fallDistance){
 
+	}
+	
+	/**
+	 * Called when a falling entity hits the bouncy blocks.
+	 *
+	 * @param float $fallDistance
+	 */
+	public function bounce(float $fallDistance){
+		if (($this->getLevel()->getBlock($this->subtract(0, 0.1, 0))->getMaxBounce() > 0) and ($fallDistance > 0.2)) {
+			$bounceDistance = (-0.0011 * ($fallDistance * $fallDistance) + (0.43529 * $fallDistance) + 1.7323);
+			if($this->getLevel()->getBlock($this->subtract(0, 0.1, 0))->getMaxBounce() < $bounceDistance) {
+				$bounceDistance = $this->getLevel()->getBlock($this->subtract(0, 0.1, 0))->getMaxBounce();
+			}
+			$ev = new EntityBounceOnBlockEvent($this,$fallDistance,$bounceDistance);
+			Server::getInstance()->getPluginManager()->callEvent($ev);
+			if(!$ev->isCancelled()) {
+				$motion = $this->getMotion();
+				$motion->y = $bounceDistance;
+				if($motion->y > ($this instanceof Item ? 2.9863502922411 : 2.8972288948972)){
+					$this->tryChangeMovement();
+					$this->move($motion->x, $motion->y, $motion->z);
+				}
+			}
+		}
 	}
 
 	public function handleLavaMovement(){ //TODO

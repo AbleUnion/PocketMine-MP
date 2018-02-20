@@ -24,6 +24,8 @@ declare(strict_types=1);
 namespace pocketmine\entity;
 
 use pocketmine\block\Block;
+use pocketmine\block\Bouncy;
+use pocketmine\block\SlimeBlock;
 use pocketmine\event\entity\EntityDamageByChildEntityEvent;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\event\entity\EntityDamageEvent;
@@ -37,6 +39,7 @@ use pocketmine\item\Armor;
 use pocketmine\item\Consumable;
 use pocketmine\item\enchantment\Enchantment;
 use pocketmine\item\Item as ItemItem;
+use pocketmine\level\particle\DestroyBlockParticle;
 use pocketmine\math\Vector3;
 use pocketmine\math\VoxelRayTrace;
 use pocketmine\nbt\tag\ByteTag;
@@ -356,7 +359,19 @@ abstract class Living extends Entity implements Damageable{
 	}
 
 	public function fall(float $fallDistance){
+		if($this instanceof Player and $this->isSpectator()){
+				return;
+		}
+		if($fallDistance > 3){
+			$this->getLevel()->addParticle(new DestroyBlockParticle($this, $this->getLevel()->getBlock($this->subtract(0, 0.1, 0))));
+		}
 		$damage = ceil($fallDistance - 3 - ($this->hasEffect(Effect::JUMP) ? $this->getEffect(Effect::JUMP)->getEffectLevel() : 0));
+		if(!$this->isSneaking() and $this->getLevel()->getBlock($this->subtract(0, 0.1, 0)) instanceof Bouncy) {
+		    if($this->getLevel()->getBlock($this->subtract(0, 1 , 0)) instanceof SlimeBlock) {
+		        $damage = 0;
+		    }
+			$this->bounce($fallDistance);
+	    }
 		if($damage > 0){
 			$ev = new EntityDamageEvent($this, EntityDamageEvent::CAUSE_FALL, $damage);
 			$this->attack($ev);
