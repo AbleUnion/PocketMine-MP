@@ -32,7 +32,6 @@ use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\event\entity\EntityDeathEvent;
 use pocketmine\event\entity\EntityEffectAddEvent;
 use pocketmine\event\entity\EntityEffectRemoveEvent;
-use pocketmine\event\entity\EntityRegainHealthEvent;
 use pocketmine\event\Timings;
 use pocketmine\inventory\ArmorInventory;
 use pocketmine\item\Armor;
@@ -234,6 +233,14 @@ abstract class Living extends Entity implements Damageable{
 	 */
 	public function hasEffect(int $effectId) : bool{
 		return isset($this->effects[$effectId]);
+	}
+	
+	/**
+	 * Returns whether the mob has any active effects.
+	 * @return bool
+	 */
+	public function hasEffects() : bool{
+		return !empty($this->effects);
 	}
 
 	/**
