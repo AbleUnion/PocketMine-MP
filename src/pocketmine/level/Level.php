@@ -31,7 +31,6 @@ use pocketmine\block\BlockFactory;
 use pocketmine\entity\Entity;
 use pocketmine\entity\Item as DroppedItem;
 use pocketmine\entity\object\ExperienceOrb;
-use pocketmine\entity\projectile\Arrow;
 use pocketmine\event\block\BlockBreakEvent;
 use pocketmine\event\block\BlockPlaceEvent;
 use pocketmine\event\block\BlockUpdateEvent;
@@ -1124,16 +1123,6 @@ class Level implements ChunkManager, Metadatable{
 	}
 
 	/**
-	 * @deprecated This method will be removed in the future due to misleading/ambiguous name. Use {@link Level#scheduleDelayedBlockUpdate} instead.
-	 *
-	 * @param Vector3 $pos
-	 * @param int     $delay
-	 */
-	public function scheduleUpdate(Vector3 $pos, int $delay){
-		$this->scheduleDelayedBlockUpdate($pos, $delay);
-	}
-
-	/**
 	 * Schedules a block update to be executed after the specified number of ticks.
 	 * Blocks will be updated with the scheduled update type.
 	 *
@@ -1882,13 +1871,8 @@ class Level implements ChunkManager, Metadatable{
 
 		if($hand->isSolid()){
 			foreach($hand->getCollisionBoxes() as $collisionBox){
-				$entities = $this->getCollidingEntities($collisionBox);
-				foreach($entities as $e){
-					if($e instanceof Arrow or $e instanceof DroppedItem or ($e instanceof Player and $e->isSpectator())){
-						continue;
-					}
-
-					return false; //Entity in block
+				if(!empty($this->getCollidingEntities($collisionBox))){
+					return false;  //Entity in block
 				}
 
 				if($player !== null){
@@ -2716,16 +2700,24 @@ class Level implements ChunkManager, Metadatable{
 
 		$this->timings->syncChunkLoadDataTimer->startTiming();
 
-		$chunk = $this->provider->loadChunk($x, $z, $create);
+		$chunk = null;
+
+		try{
+			$chunk = $this->provider->loadChunk($x, $z);
+		}catch(\Exception $e){
+			$logger = $this->server->getLogger();
+			$logger->critical("An error occurred while loading chunk x=$x z=$z: " . $e->getMessage());
+			$logger->logException($e);
+		}
+
+		if($chunk === null and $create){
+			$chunk = new Chunk($x, $z);
+		}
 
 		$this->timings->syncChunkLoadDataTimer->stopTiming();
 
 		if($chunk === null){
 			$this->timings->syncChunkLoadTimer->stopTiming();
-
-			if($create){
-				throw new \InvalidStateException("Could not create new Chunk");
-			}
 			return false;
 		}
 

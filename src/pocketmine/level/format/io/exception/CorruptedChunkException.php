@@ -21,15 +21,10 @@
 
 declare(strict_types=1);
 
-namespace pocketmine\level\particle;
+namespace pocketmine\level\format\io\exception;
 
-use pocketmine\block\Block;
-use pocketmine\math\Vector3;
-use pocketmine\network\mcpe\protocol\LevelEventPacket;
+use pocketmine\level\format\ChunkException;
 
-class DestroyBlockParticle extends DestroyParticle{
+class CorruptedChunkException extends ChunkException{
 
-	public function __construct(Vector3 $pos, Block $b){
-		parent::__construct($pos, $b->getId() | ($b->getDamage() << 8));
-	}
 }

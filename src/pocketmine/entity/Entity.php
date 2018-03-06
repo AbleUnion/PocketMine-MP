@@ -239,6 +239,9 @@ abstract class Entity extends Location implements Metadatable, EntityIds{
 		Entity::registerEntity(Zombie::class, false, ['Zombie',	'minecraft:zombie']);
 
 		Entity::registerEntity(Human::class, true);
+
+		Attribute::init();
+		Effect::init();
 	}
 
 
@@ -287,7 +290,7 @@ abstract class Entity extends Location implements Metadatable, EntityIds{
 
 			$shortName = $class->getShortName();
 			if(!in_array($shortName, $saveNames, true)){
-				$saveNames[] = $class->getShortName();
+				$saveNames[] = $shortName;
 			}
 
 			foreach($saveNames as $name){
@@ -460,8 +463,6 @@ abstract class Entity extends Location implements Metadatable, EntityIds{
 
 	/** @var TimingsHandler */
 	protected $timings;
-	/** @var bool */
-	protected $isPlayer = false;
 
 	/** @var bool */
 	protected $constructed = false;
@@ -470,8 +471,6 @@ abstract class Entity extends Location implements Metadatable, EntityIds{
 	public function __construct(Level $level, CompoundTag $nbt){
 		$this->constructed = true;
 		$this->timings = Timings::getEntityTimings($this);
-
-		$this->isPlayer = $this instanceof Player;
 
 		$this->temporalVector = new Vector3();
 

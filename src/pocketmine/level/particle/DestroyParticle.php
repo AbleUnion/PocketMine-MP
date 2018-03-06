@@ -21,46 +21,26 @@
 
 declare(strict_types=1);
 
-namespace pocketmine\event\entity;
+namespace pocketmine\level\particle;
 
-use pocketmine\entity\Entity;
-use pocketmine\event\Cancellable;
-use pocketmine\level\Position;
+use pocketmine\math\Vector3;
+use pocketmine\network\mcpe\protocol\LevelEventPacket;
 
-class EntityTeleportEvent extends EntityEvent implements Cancellable{
-	public static $handlerList = null;
+class DestroyParticle extends Particle{
+	/** @var int */
+	protected $data;
 
-	/** @var Position */
-	private $from;
-	/** @var Position */
-	private $to;
-
-	public function __construct(Entity $entity, Position $from, Position $to){
-		$this->entity = $entity;
-		$this->from = $from;
-		$this->to = $to;
+	public function __construct(Vector3 $pos, int $data){
+		parent::__construct($pos->x, $pos->y, $pos->z);
+		$this->data = $data;
 	}
 
-	/**
-	 * @return Position
-	 */
-	public function getFrom() : Position{
-		return $this->from;
+	public function encode(){
+		$pk = new LevelEventPacket;
+		$pk->evid = LevelEventPacket::EVENT_PARTICLE_DESTROY;
+		$pk->position = $this->asVector3();
+		$pk->data = $this->data;
+
+		return $pk;
 	}
-
-	/**
-	 * @return Position
-	 */
-	public function getTo() : Position{
-		return $this->to;
-	}
-
-	/**
-	 * @param Position $to
-	 */
-	public function setTo(Position $to){
-		$this->to = $to;
-	}
-
-
 }

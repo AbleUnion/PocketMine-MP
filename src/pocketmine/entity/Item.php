@@ -134,6 +134,10 @@ class Item extends Entity{
 		return false;
 	}
 
+	public function canBeCollidedWith() : bool{
+		return false;
+	}
+
 	/**
 	 * @return int
 	 */
